@@ -1,0 +1,116 @@
+<html>
+<head>
+    <title>Py-Script</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="https://pyscript.net/latest/pyscript.css" />
+    <script defer src="https://pyscript.net/latest/pyscript.js"></script>
+    
+    <py-config>
+        packages = [
+        "matplotlib",
+        "pandas",
+        "seaborn",
+        "scikit-learn"
+        ]
+    </py-config>
+
+    <!---pyodide--> 
+    
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/@holoviz/panel@0.13.1/dist/bundled/bootstraptemplate/bootstrap.css">
+    <link rel="stylesheet" href="https://unpkg.com/@holoviz/panel@0.13.1/dist/bundled/defaulttheme/default.css">
+    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.1/dist/js/bootstrap.bundle.min.js"></script>
+    <script type="text/javascript" src="https://unpkg.com/tabulator-tables@4.9.3/dist/js/tabulator.js"></script>
+   
+</head>
+
+<body>
+    <nav class="navbar navbar-expand-md navbar-dark sticky-top shadow" id="header"
+        style="background-color: #000000;">
+        <div class="app-header">
+            <a class="navbar-brand app-logo" href="/">
+                <img src="./machine-learning.png" class="app-logo">
+            </a>
+            <a class="title" href="" style="color: #f0ab3c;">Matplotlib and Machine Learning Projects in Py-Script</a>
+        </div>
+    </nav>
+    <div class="row overflow-hidden" id="content">
+        <div class="col mh-100 float-left" id="main">
+            <div class="bk-root" id="intro"></div>
+            <div class="bk-root" id="second"></div>
+        </div>
+    </div>
+
+    <py-script>
+        
+        import pandas as pd
+        from pyodide.http import open_url
+        from matplotlib import pyplot as plt
+        import seaborn as sns
+        from sklearn.model_selection import train_test_split
+        from sklearn.tree import DecisionTreeClassifier
+        from sklearn.metrics import accuracy_score
+        from sklearn.metrics import classification_report, confusion_matrix
+
+        url_content = open_url("https://raw.githubusercontent.com/mwaskom/seaborn-data/master/diamonds.csv")
+        df = pd.read_csv(url_content)
+        tabela = Element('intro')
+        tabela.write(df.head(10))
+
+        value = df['cut'].unique()
+        plt.figure(figsize=(9,4))
+        ax = sns.countplot(x='cut', data=df, order=value)
+        ax.set_xticklabels(ax.get_xticklabels(), ha="center", fontsize=8)
+        plt.title('Diamonds by quality of the cut', fontsize=14, fontweight='bold') 
+
+        display(plt, target='intro')
+
+        #-------- Data Pre-Processing to machine learning -------        
+        #selecting the data for the construction of the forecast
+        categories = ['cut', 'color', 'clarity']
+        for column in categories:
+            df[column] = pd.Categorical(df[column]).codes
+        tabela2 = Element('second')
+        tabela2.write(df.head(10)) 
+
+        input = ['carat', 'color', 'clarity','depth', 'table', 'price']
+        output = ['cut']
+
+        x=df[input]
+        y=df[output]
+
+        x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
+
+        #----------- Decision Tree model ----------------
+        clf_tree = DecisionTreeClassifier(random_state=42) 
+        clf_tree.fit(x_train, y_train)
+
+        # Doing the data forecast
+        y_forecast = clf_tree.predict(x_test)
+
+        accuracy = accuracy_score(y_test, y_forecast)
+        print(f'Decision Tree Accuracy: {accuracy} \n')
+
+        # construction of the confusion matrix
+        matrix = confusion_matrix(y_test, y_forecast)
+        print('Confusion Matrix')
+        print(matrix)
+
+        plt.figure(figsize=(10,6))
+        ax = sns.heatmap(matrix, center=True)
+        labels = ['Fair', 'Good', 'Ideal', 'Premium', 'Very Good']
+        
+        ax.set_xticklabels(labels)
+        ax.set_yticklabels(labels)
+        plt.title('Decision Tree Model - Confusion Matrix', fontsize=14, fontweight='bold')
+        plt.ylabel('True label')
+        plt.xlabel('Predicted label \n accuracy={:0.4f} \n'.format(accuracy))
+
+        display(plt, target='second')
+        print('\n Classification Report')
+        print(classification_report(y_test,y_forecast))
+
+    </py-script>
+</body>
+</html>
